@@ -1,4 +1,4 @@
-exports.parse = function (filename) {
+exports.parse = async function (filename) {
 	var content = require(filename);
 
 	if (!content.name) {

@@ -1,5 +1,13 @@
-exports.parse = function (filename) {
-	var contents = require(filename);
+const fs = require("fs");
+const unzip = require("unzip");
+const streamToString = require("stream-to-string");
+
+exports.parse = async function (filename) {
+	var contents = await parseContentJsonFromFile(filename);
+
+	if (!contents) {
+		throw new Error("XMind file parse error: content.json not found");
+	}
 
 	if (!contents.length) {
 		return [];
@@ -14,6 +22,31 @@ exports.parse = function (filename) {
 		nodes.push(rootNode);
 	});
 	return nodes;
+}
+
+function parseContentJsonFromFile(filename) {
+	var result = new Promise(function (resolve, reject) {
+		fs.createReadStream(filename)
+			.pipe(unzip.Parse())
+			.on('entry', function (entry) {
+				if (entry.path === "content.json" && entry.type === "File") {
+					streamToString(entry, function (err, str) {
+						const obj = JSON.parse(str);
+						resolve(obj);
+					});
+				} else {
+					entry.autodrain();
+				}
+			})
+			.on('close', function () {
+				resolve(null);
+			})
+			.on('error', function (err) {
+				reject(err);
+			});
+	});
+
+	return result;
 }
 
 function extractChildren(rawTopic, node) {

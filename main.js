@@ -53,9 +53,9 @@ async function main() {
 
 	var rootNodes;
 	if (commander.format === "mmap") {
-		rootNodes = mmapParser.parse(fileName);
+		rootNodes = await mmapParser.parse(fileName);
 	} else {
-		rootNodes = xmindParser.parse(fileName);
+		rootNodes = await xmindParser.parse(fileName);
 	}
 
 	console.log(`Fetching sections from server '${commander.domainKey}.feie.work'...`)
