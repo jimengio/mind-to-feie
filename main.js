@@ -75,7 +75,8 @@ async function walkNodes(projectId, parentSectionId, nodes, sections, cases) {
 		let testCase;
 		let testSection;
 		if (isSectionNode(node)) {
-			testSection = parseTestSectionFromNodeTitle(node.title);
+			let sectionNode = node;
+			testSection = parseTestSectionFromNodeTitle(sectionNode.title);
 			testSection.project_id = projectId;
 			testSection.parent_id = parentSectionId;
 
@@ -100,16 +101,24 @@ async function walkNodes(projectId, parentSectionId, nodes, sections, cases) {
 				sectionId: sectionOnServer.id,
 			});
 
-			if (sectionOnServer && node.children) {
-				await walkNodes(projectId, sectionOnServer.id, node.children, sections, casesOfSectionOnServer);
+			if (sectionOnServer && sectionNode.children) {
+				await walkNodes(projectId, sectionOnServer.id, sectionNode.children, sections, casesOfSectionOnServer);
 			}
 		} else if (isCaseNode(node)) {
-			testCase = parseTestCaseFromNodeTitle(node.title);
+			let caseNode = node;
+			let stepNodes = caseNode.children || [];
+
+			testCase = parseTestCaseFromNodeTitle(caseNode.title);
 			testCase.project_id = projectId;
 			testCase.section_id = parentSectionId;
-			var steps = [];
-			node.children.forEach(function (caseNode) {
-				steps.push({content: caseNode.title, expected: caseNode.children[0].title});
+			let steps = [];
+			stepNodes.forEach(function (stepNode) {
+				if (!stepNode.children || !stepNode.children.length
+					&& stepNode.title.startsWith("@")) {
+					testCase.precondition = stepNode.title.substring(1).trim();
+				} else if (stepNode.children && stepNode.children.length === 1) {
+					steps.push({content: stepNode.title, expected: stepNode.children[0].title});
+				}
 			})
 	
 			if (steps.length === 1) {
@@ -185,7 +194,7 @@ function isSectionNode(node) {
 }
 
 function isCaseNode(node) {
-	return node.title.startsWith("*") && node.children && node.children[0].children && !node.children[0].children[0].children;
+	return node.title.startsWith("*");
 }
 
 function parseTestSectionFromNodeTitle(title) {
